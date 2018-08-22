@@ -6,6 +6,7 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from rest_framework.validators import UniqueValidator
 
 from location.serializer.pension import PensionNameSerializer
 from location.serializer.room import RoomBaseSerializer
@@ -17,24 +18,18 @@ User = get_user_model()
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    username = serializers.EmailField()
+    username = serializers.EmailField(validators=[UniqueValidator(queryset=User.objects.all())])
+    password = serializers.CharField(max_length=100, min_length=8, write_only=True)
+    password2 = serializers.CharField(max_length=100, min_length=8, write_only=True)
 
     class Meta:
         model = User
         fields = '__all__'
 
-    def to_internal_value(self, data):
-        ret = super(UserCreateSerializer, self).to_internal_value(data)
-        return ret
-
-    def to_representation(self, obj):
-        ret = super(UserCreateSerializer, self).to_representation(obj)
-        return ret
-
-    def validate_password(self, value):
-        if len(value) < 8:
-            raise serializers.ValidationError('패스워드는 최소 8자 이상이어야 합니다.')
-        return value
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError('패스워드가 일치하지 않습니다.')
+        return attrs
 
 
     def create(self, validated_data):
@@ -50,7 +45,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
         message = render_to_string('user/account_activate_email.html', {
             'user' : user,
-            'domain' : 'localhost:8000',
+            'domain' : 'api.pmb.kr',
             'uid' : urlsafe_base64_encode(force_bytes(user.pk)).decode('utf-8'),
             'token' : account_activation_token.make_token(user)
         })
@@ -110,7 +105,7 @@ class UserPasswordChange(serializers.ModelSerializer):
 
         password2 = self.initial_data.get('password2')
         if not password == password2:
-            raise serializers.ValidationError('비밀번호가 일치하지 않습니다.')
+            raise ValidationError('비밀번호가 일치하지 않습니다.')
 
         errors = dict()
 
@@ -132,5 +127,15 @@ class UserPasswordChange(serializers.ModelSerializer):
 
         return instance
 
+
+class FacebookUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            'pk',
+            'username',
+            'first_name',
+            'last_name',
+        )
 
 
