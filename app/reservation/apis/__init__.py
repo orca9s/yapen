@@ -18,7 +18,6 @@ from reservation.serializer.reservation import RoomReservationSerializer, Pensio
 import json
 
 
-
 def convert_to_datetime(date):
     list1 = date.split('-')
     year = int(list1[0])
@@ -53,7 +52,7 @@ class ReservationRoom(APIView):
             room.status = True
             room.save()
 
-        pension =Pension.objects.get(pk=pk)
+        pension = Pension.objects.get(pk=pk)
         serializer = PensionReservationSerializer(pension)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
@@ -106,7 +105,6 @@ class ReservationPay(APIView):
             return Room.objects.get(pk=pk)
         except Room.DoesNotExist:
             raise Http404
-
 
     def post(self,request, format=None):
 
